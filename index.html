@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منشئ QR Code للفروع</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- مكتبة لتوليد رمز الاستجابة السريعة (QR Code) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* الألوان الخاصة بفودافون */
+        :root {
+            --vodafone-red: #E60000;
+            --vodafone-red-dark: #cc0000;
+            --button-bg-light: #fefefe;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f0f0f0; 
+        }
+
+        /* تنسيق خاص لأزرار QR Code */
+        #qrcode canvas, #qrcode img {
+            margin: 0 auto;
+            border-radius: 0.5rem; 
+            padding: 1rem;
+            background-color: white;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* تنسيق عام لأزرار الفروع - تم إزالة قيود العرض لمنع الاقتصاص */
+        .branch-button {
+            transition: all 0.2s ease-in-out;
+            background-color: var(--button-bg-light);
+            border: 2px solid #ddd;
+            color: #333;
+            font-weight: 700;
+            padding: 0.75rem 0.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            /* السماح للنص باللف داخل الزر بدلاً من قصه */
+            white-space: normal; 
+            height: auto; 
+            min-height: 50px; /* لضمان حجم كافٍ للأسماء الطويلة */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+        }
+
+        /* تنسيق الزر النشط */
+        .branch-button.active {
+            background-color: var(--vodafone-red);
+            color: white;
+            border-color: var(--vodafone-red-dark);
+            box-shadow: 0 4px 10px rgba(230, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+        .branch-button:hover:not(.active) {
+            border-color: var(--vodafone-red);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex items-start justify-center min-h-screen">
+
+    <!-- الحاوية الرئيسية تحتوي على الأزرار ومنطقة QR -->
+    <div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+        
+        <!-- رأس الصفحة بلون فودافون الأحمر -->
+        <header class="bg-[color:var(--vodafone-red)] text-white p-4 md:p-6 text-center">
+            <!-- تم تغيير العنوان هنا بناءً على طلبك -->
+            <h1 class="text-3xl font-extrabold">تقييم آراء العملاء (QR Code)</h1>
+            <p class="text-sm mt-1 opacity-90">اختر الفرع لعرض رمز مراجعات جوجل الخاص به</p>
+        </header>
+
+        <main class="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- العمود الأول: أزرار الفروع -->
+            <div class="lg:col-span-1 space-y-4">
+                <h2 class="text-xl font-bold text-gray-800 border-b-2 border-[color:var(--vodafone-red)] pb-2 mb-4">اختر الفرع:</h2>
+                
+                <!-- شبكة الأزرار (3x4 على الشاشات الكبيرة) -->
+                <div id="branchButtonsContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+                    <!-- Buttons will be generated here by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- العمود الثاني: منطقة عرض QR Code -->
+            <div class="lg:col-span-2 flex flex-col items-center justify-center p-4 bg-gray-50 border border-gray-200 rounded-xl shadow-inner min-h-[400px]">
+                <h2 id="branchTitle" class="text-2xl font-extrabold text-gray-900 mb-6 border-b-2 pb-1 text-center">الرجاء اختيار فرع</h2>
+                
+                <div id="qrcode" class="p-2 bg-white rounded-lg transition duration-300 transform scale-100">
+                    <!-- QR Code will be drawn here -->
+                </div>
+
+                <p id="scanMessage" class="text-sm text-gray-500 mt-4 text-center hidden">
+                    تم إنشاء الكود بنجاح.
+                </p>
+
+                <!-- منطقة رسالة الشكر/الرابط النشط -->
+                <div class="space-y-2 pt-6 w-full max-w-md">
+                    <!-- الرسالة المطلوبة باللون الأخضر الداكن والخط المميز -->
+                    <p class="text-center text-green-800 text-2xl font-extrabold p-4 rounded-lg">
+                        شكراً لثقتكم بنا
+                    </p>
+                    
+                    <!-- حقل الإدخال المخفي: يتم الاحتفاظ به ليستخدمه JavaScript في تحديث محتوى الـ QR Code داخلياً -->
+                    <input 
+                        type="url" 
+                        id="qrContent" 
+                        readonly
+                        value=""
+                        class="hidden"
+                    >
+                </div>
+
+            </div>
+            
+        </main>
+    </div>
+
+    <script>
+        // مصفوفة بيانات الفروع والروابط الخاصة بهم
+        const branchData = [
+            { name: "الجيزة", url: "https://g.page/r/CUlNvoEyZdeOEBM/review" }, 
+            { name: "فيصل", url: "https://g.page/r/CXY2OJ1HOhCYEBM/review" }, 
+            { name: "المهندسين", url: "https://g.page/r/Ca9NPKVMn5nlEBM/review" }, 
+            { name: "الهرم", url: "https://g.page/r/CZqGz8OvIqqUEBM/review" }, 
+            { name: "حدائق الأهرام", url: "https://g.page/r/CfU98tFX__YtEBM/review" }, 
+            { name: "اكتوبر", url: "https://g.page/r/CQt1tdnkAqmxEBM/review" }, 
+            { name: "المتميز", url: "https://g.page/r/CZ_I72NR5iYuEBM/review" }, 
+            { name: "المعادي", url: "https://g.page/r/CUItfre5Nz8mEBM/review" }, 
+            { name: "الواحة", url: "https://g.page/r/CSsibKd1B6EHEBM/review" }, 
+            { name: "الغردقة الكوثر", url: "https://g.page/r/CREPH3LrHfx3EBM/review" }, 
+            { name: "الغردقة النصر", url: "https://g.page/r/CcneM41x8G8yEBM/review" }, 
+            { name: "الشيخ زايد", url: "https://mock.google.com/sheikh-zayed-review-link" } // الرابط الوهمي الوحيد المتبقي
+        ];
+
+        // يتم إخفاء حقل الإدخال qrContent من العرض، لكن يتم الاحتفاظ به هنا لتحديث محتوى الـ QR Code
+        const qrContentInput = document.getElementById('qrContent'); 
+        const qrcodeContainer = document.getElementById('qrcode');
+        const branchButtonsContainer = document.getElementById('branchButtonsContainer');
+        const branchTitle = document.getElementById('branchTitle');
+        const scanMessage = document.getElementById('scanMessage');
+
+        let qrCodeInstance = null; // للمحافظة على نسخة من مولد QR
+
+        /**
+         * توليد رمز الاستجابة السريعة (QR Code)
+         * @param {string} content - الرابط أو النص المراد تحويله إلى QR.
+         */
+        function generateQRCode(content) {
+            // مسح المحتوى القديم من الحاوية
+            qrcodeContainer.innerHTML = ''; 
+            scanMessage.classList.add('hidden');
+
+            if (!content) {
+                // رسالة إذا كان المحتوى فارغاً (لا يوجد فرع محدد بعد)
+                qrcodeContainer.innerHTML = '<p class="text-gray-500 p-4">الرجاء اختيار فرع من القائمة.</p>';
+                return;
+            }
+
+            // توليد الرمز الجديد
+            qrCodeInstance = new QRCode(qrcodeContainer, {
+                text: content,
+                width: 256,
+                height: 256,
+                colorDark : "#333333", 
+                colorLight : "#ffffff", 
+                correctLevel : QRCode.CorrectLevel.H 
+            });
+            scanMessage.classList.remove('hidden');
+        }
+
+        /**
+         * تفعيل زر الفرع المحدد وتحديث الـ QR Code
+         * @param {string} branchName - اسم الفرع.
+         * @param {string} url - رابط الفرع.
+         * @param {HTMLElement} buttonElement - عنصر الزر الذي تم الضغط عليه.
+         */
+        function selectBranch(branchName, url, buttonElement) {
+            // 1. إزالة التفعيل من جميع الأزرار
+            document.querySelectorAll('.branch-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // 2. تفعيل الزر الحالي
+            buttonElement.classList.add('active');
+
+            // 3. تحديث واجهة المستخدم
+            branchTitle.textContent = `QR Code لفرع ${branchName}`;
+            qrContentInput.value = url; // تحديث قيمة الحقل المخفي
+
+            // 4. توليد رمز الاستجابة السريعة
+            generateQRCode(url);
+        }
+
+        /**
+         * بناء الأزرار الـ 12 ديناميكياً
+         */
+        function buildBranchButtons() {
+            branchData.forEach(branch => {
+                const button = document.createElement('button');
+                button.textContent = branch.name;
+                button.classList.add('branch-button');
+                
+                // إضافة معالجة الحدث
+                button.addEventListener('click', (event) => {
+                    selectBranch(branch.name, branch.url, event.currentTarget);
+                });
+
+                branchButtonsContainer.appendChild(button);
+            });
+            
+            // تفعيل الفرع الأول افتراضياً عند التحميل
+            if (branchData.length > 0) {
+                // نأخذ الفرع الأول ونحاكي الضغط عليه
+                const firstButton = branchButtonsContainer.querySelector('.branch-button');
+                if (firstButton) {
+                    selectBranch(branchData[0].name, branchData[0].url, firstButton);
+                }
+            } else {
+                 // إذا لم تكن هناك فروع، نعرض رسالة فارغة
+                 generateQRCode(null);
+            }
+        }
+
+
+        // --- الإطلاق عند تحميل النافذة ---
+        window.onload = buildBranchButtons;
+
+    </script>
+</body>
+</html>
